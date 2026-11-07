@@ -1,0 +1,146 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IP Intelligence</title>
+<style>
+* {box-sizing:border-box}
+body {
+  margin:0;
+  background:#090e18;
+  color:#e8edf7;
+  font-family:Arial,sans-serif;
+  padding:35px 18px;
+}
+main {max-width:760px;margin:auto}
+header {margin:30px 0}
+h1 {font-size:34px;color:#64dca4}
+p {color:#94a3b8}
+.search {
+ display:flex;gap:10px;margin:25px 0;
+}
+input {
+ flex:1;min-width:0;padding:16px;
+ background:#151f30;border:1px solid #334155;
+ color:white;border-radius:8px;
+}
+button {
+ padding:15px 22px;background:#35b982;
+ border:0;border-radius:8px;
+ font-weight:bold;cursor:pointer;
+}
+.card {
+ background:#121c2b;border:1px solid #26364c;
+ border-radius:12px;padding:22px;margin:15px 0;
+}
+.grid {
+ display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+.item {
+ background:#1a2739;padding:16px;border-radius:8px;
+ overflow-wrap:anywhere;
+}
+.label {color:#8da3bc;font-size:12px}
+.value {font-size:16px;margin-top:8px}
+#status {color:#64dca4;min-height:24px}
+@media(max-width:500px){
+ .search {flex-direction:column}
+ .grid {grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <p>NETWORK INTELLIGENCE TOOL</p>
+ <h1>IP Intelligence.</h1>
+ <p>Look up publicly available IP network information.</p>
+</header>
+
+<div class="card">
+ <h3>IP Address Lookup</h3>
+ <div class="search">
+  <input id="ip" placeholder="Enter an IP address">
+  <button onclick="lookup()">SEARCH</button>
+ </div>
+ <div id="status"></div>
+</div>
+
+<div id="results" hidden>
+ <div class="card">
+  <h3>Network Information</h3>
+  <div class="grid" id="data"></div>
+ </div>
+</div>
+
+<script>
+async function lookup() {
+ const ip = document.getElementById("ip").value.trim();
+ const status = document.getElementById("status");
+ const results = document.getElementById("results");
+ const data = document.getElementById("data");
+
+ const valid = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/.test(ip)
+ || /^[0-9a-fA-F:]+$/.test(ip) && ip.includes(":");
+
+ if (!valid) {
+  status.textContent = "Enter a valid IPv4 or IPv6 address.";
+  results.hidden = true;
+  return;
+ }
+
+ status.textContent = "Looking up IP...";
+ results.hidden = true;
+
+ try {
+  const response = await fetch(
+   "https://ipwho.is/" + encodeURIComponent(ip)
+  );
+  const info = await response.json();
+
+  if (!response.ok || !info.success) {
+   throw new Error(info.message || "Lookup failed");
+  }
+
+  const fields = {
+   "IP Address":info.ip,
+   "Country":info.country,
+   "Region":info.region,
+   "City":info.city,
+   "ISP":info.connection?.isp,
+   "Organization":info.connection?.org,
+   "Timezone":info.timezone?.id,
+   "Latitude":info.latitude,
+   "Longitude":info.longitude
+  };
+
+  data.replaceChildren();
+
+  for (const [label,value] of Object.entries(fields)) {
+   const box = document.createElement("div");
+   box.className = "item";
+
+   const heading = document.createElement("div");
+   heading.className = "label";
+   heading.textContent = label;
+
+   const content = document.createElement("div");
+   content.className = "value";
+   content.textContent = value ?? "Unavailable";
+
+   box.append(heading,content);
+   data.append(box);
+  }
+
+  results.hidden = false;
+  status.textContent = "Lookup completed.";
+ } catch(error) {
+  status.textContent = error.message || "Unable to complete lookup.";
+ }
+}
+</script>
+</main>
+</body>
+</html>
